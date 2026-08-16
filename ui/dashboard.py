@@ -4,6 +4,7 @@ from database.database import get_connection
 
 from ui.employees import EmployeesFrame
 from ui.users import UsersFrame
+from ui.audit_logs import AuditLogsFrame
 
 
 class DashboardFrame(ctk.CTkFrame):
@@ -90,7 +91,6 @@ class DashboardFrame(ctk.CTkFrame):
             self.show_dashboard,
         )
 
-        # Admin and HR can manage employees.
         if self.user["role"] in (
             "Admin",
             "HR",
@@ -102,7 +102,6 @@ class DashboardFrame(ctk.CTkFrame):
                 self.show_employees,
             )
 
-        # Only Administrator can manage user accounts.
         if self.user["role"] == "Admin":
 
             self.create_sidebar_button(
@@ -114,7 +113,7 @@ class DashboardFrame(ctk.CTkFrame):
             self.create_sidebar_button(
                 sidebar,
                 "Audit Logs",
-                self.feature_not_available,
+                self.show_audit_logs,
             )
 
             self.create_sidebar_button(
@@ -134,7 +133,7 @@ class DashboardFrame(ctk.CTkFrame):
             self.create_sidebar_button(
                 sidebar,
                 "Audit Logs",
-                self.feature_not_available,
+                self.show_audit_logs,
             )
 
             self.create_sidebar_button(
@@ -199,7 +198,9 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="transparent",
             hover_color="#1E3A8A",
             anchor="w",
-            font=ctk.CTkFont(size=14),
+            font=ctk.CTkFont(
+                size=14
+            ),
             command=command,
         )
 
@@ -210,7 +211,7 @@ class DashboardFrame(ctk.CTkFrame):
         )
 
     # -------------------------------------------------
-    # CONTENT NAVIGATION
+    # NAVIGATION
     # -------------------------------------------------
 
     def clear_content(self):
@@ -229,7 +230,6 @@ class DashboardFrame(ctk.CTkFrame):
         ):
 
             self.show_access_denied()
-
             return
 
         self.clear_content()
@@ -244,12 +244,28 @@ class DashboardFrame(ctk.CTkFrame):
         if self.user["role"] != "Admin":
 
             self.show_access_denied()
-
             return
 
         self.clear_content()
 
         UsersFrame(
+            self.content_container,
+            self.user,
+        )
+
+    def show_audit_logs(self):
+
+        if self.user["role"] not in (
+            "Admin",
+            "HR",
+        ):
+
+            self.show_access_denied()
+            return
+
+        self.clear_content()
+
+        AuditLogsFrame(
             self.content_container,
             self.user,
         )
@@ -291,7 +307,9 @@ class DashboardFrame(ctk.CTkFrame):
                 "permission to access this feature."
             ),
             text_color="#64748B",
-            font=ctk.CTkFont(size=15),
+            font=ctk.CTkFont(
+                size=15
+            ),
         )
 
         info.place(
@@ -374,7 +392,9 @@ class DashboardFrame(ctk.CTkFrame):
                 "Employee Management System • "
                 "Q01 Improve Reliability"
             ),
-            font=ctk.CTkFont(size=15),
+            font=ctk.CTkFont(
+                size=15
+            ),
             text_color="#6B7280",
         )
 
@@ -423,7 +443,9 @@ class DashboardFrame(ctk.CTkFrame):
             0,
             0,
             "Employees",
-            str(stats["employees"]),
+            str(
+                stats["employees"]
+            ),
             "Total employee records",
         )
 
@@ -432,7 +454,9 @@ class DashboardFrame(ctk.CTkFrame):
             0,
             1,
             "Audit Events",
-            str(stats["audit_logs"]),
+            str(
+                stats["audit_logs"]
+            ),
             "Recorded system activities",
         )
 
@@ -441,7 +465,9 @@ class DashboardFrame(ctk.CTkFrame):
             0,
             2,
             "System Users",
-            str(stats["users"]),
+            str(
+                stats["users"]
+            ),
             "Registered user accounts",
         )
 
@@ -482,7 +508,7 @@ class DashboardFrame(ctk.CTkFrame):
             ),
             (
                 "Audit Logging",
-                "Active",
+                "Active + Visible",
             ),
             (
                 "Role Based Access",
@@ -498,7 +524,9 @@ class DashboardFrame(ctk.CTkFrame):
             ),
         ]
 
-        for name, value in reliability_items:
+        for name, value in (
+            reliability_items
+        ):
 
             row = ctk.CTkFrame(
                 reliability_frame,
