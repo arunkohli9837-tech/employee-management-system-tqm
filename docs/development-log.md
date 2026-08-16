@@ -95,3 +95,46 @@ Employee operations are recorded through the audit logging system.
 ### Status
 
 Completed.
+## Stage 3 - Role-Based Access Control
+
+### Objective
+
+Implement user account management and role-based access control to
+prevent unauthorized access to sensitive Employee Management System
+functions.
+
+### Implemented
+
+- Admin user role
+- HR user role
+- Employee user role
+- User account creation
+- User account editing
+- Password assignment
+- Password reset through user update
+- User activation and deactivation
+- User search
+- Role-based navigation
+- Restricted administrative features
+- Unauthorized service-level access protection
+- Self-deactivation prevention
+- Administrator role protection
+- Last active Administrator protection
+- User management audit logging
+
+### TQM Reliability Improvements
+
+Role-based access control prevents unauthorized users from performing
+sensitive system operations.
+
+Administrative account protection reduces the possibility of
+accidentally locking all administrators out of the system.
+
+Inactive user accounts are retained instead of permanently deleted,
+providing historical traceability.
+
+Strong password validation reduces weak account credentials.
+
+### Status
+
+Completed.

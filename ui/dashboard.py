@@ -1,7 +1,9 @@
 import customtkinter as ctk
 
 from database.database import get_connection
+
 from ui.employees import EmployeesFrame
+from ui.users import UsersFrame
 
 
 class DashboardFrame(ctk.CTkFrame):
@@ -42,6 +44,10 @@ class DashboardFrame(ctk.CTkFrame):
 
         self.show_dashboard()
 
+    # -------------------------------------------------
+    # SIDEBAR
+    # -------------------------------------------------
+
     def create_sidebar(self):
 
         sidebar = ctk.CTkFrame(
@@ -56,7 +62,9 @@ class DashboardFrame(ctk.CTkFrame):
             fill="y",
         )
 
-        sidebar.pack_propagate(False)
+        sidebar.pack_propagate(
+            False
+        )
 
         title = ctk.CTkLabel(
             sidebar,
@@ -76,66 +84,63 @@ class DashboardFrame(ctk.CTkFrame):
             padx=20,
         )
 
-        dashboard_button = ctk.CTkButton(
+        self.create_sidebar_button(
             sidebar,
-            text="Dashboard",
-            height=42,
-            corner_radius=8,
-            fg_color="transparent",
-            hover_color="#1E3A8A",
-            anchor="w",
-            font=ctk.CTkFont(size=14),
-            command=self.show_dashboard,
+            "Dashboard",
+            self.show_dashboard,
         )
 
-        dashboard_button.pack(
-            fill="x",
-            padx=15,
-            pady=4,
-        )
+        # Admin and HR can manage employees.
+        if self.user["role"] in (
+            "Admin",
+            "HR",
+        ):
 
-        employees_button = ctk.CTkButton(
-            sidebar,
-            text="Employees",
-            height=42,
-            corner_radius=8,
-            fg_color="transparent",
-            hover_color="#1E3A8A",
-            anchor="w",
-            font=ctk.CTkFont(size=14),
-            command=self.show_employees,
-        )
-
-        employees_button.pack(
-            fill="x",
-            padx=15,
-            pady=4,
-        )
-
-        future_buttons = [
-            "User Roles",
-            "Audit Logs",
-            "Backups",
-            "Reliability",
-        ]
-
-        for button_name in future_buttons:
-
-            button = ctk.CTkButton(
+            self.create_sidebar_button(
                 sidebar,
-                text=button_name,
-                height=42,
-                corner_radius=8,
-                fg_color="transparent",
-                hover_color="#1E3A8A",
-                anchor="w",
-                font=ctk.CTkFont(size=14),
+                "Employees",
+                self.show_employees,
             )
 
-            button.pack(
-                fill="x",
-                padx=15,
-                pady=4,
+        # Only Administrator can manage user accounts.
+        if self.user["role"] == "Admin":
+
+            self.create_sidebar_button(
+                sidebar,
+                "User Roles",
+                self.show_users,
+            )
+
+            self.create_sidebar_button(
+                sidebar,
+                "Audit Logs",
+                self.feature_not_available,
+            )
+
+            self.create_sidebar_button(
+                sidebar,
+                "Backups",
+                self.feature_not_available,
+            )
+
+            self.create_sidebar_button(
+                sidebar,
+                "Reliability",
+                self.feature_not_available,
+            )
+
+        elif self.user["role"] == "HR":
+
+            self.create_sidebar_button(
+                sidebar,
+                "Audit Logs",
+                self.feature_not_available,
+            )
+
+            self.create_sidebar_button(
+                sidebar,
+                "Reliability",
+                self.feature_not_available,
             )
 
         spacer = ctk.CTkLabel(
@@ -154,7 +159,9 @@ class DashboardFrame(ctk.CTkFrame):
                 f"{self.user['role']}"
             ),
             text_color="#CBD5E1",
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(
+                size=13
+            ),
         )
 
         user_label.pack(
@@ -177,10 +184,155 @@ class DashboardFrame(ctk.CTkFrame):
             pady=(0, 25),
         )
 
+    def create_sidebar_button(
+        self,
+        sidebar,
+        text,
+        command,
+    ):
+
+        button = ctk.CTkButton(
+            sidebar,
+            text=text,
+            height=42,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color="#1E3A8A",
+            anchor="w",
+            font=ctk.CTkFont(size=14),
+            command=command,
+        )
+
+        button.pack(
+            fill="x",
+            padx=15,
+            pady=4,
+        )
+
+    # -------------------------------------------------
+    # CONTENT NAVIGATION
+    # -------------------------------------------------
+
     def clear_content(self):
 
-        for widget in self.content_container.winfo_children():
+        for widget in (
+            self.content_container.winfo_children()
+        ):
+
             widget.destroy()
+
+    def show_employees(self):
+
+        if self.user["role"] not in (
+            "Admin",
+            "HR",
+        ):
+
+            self.show_access_denied()
+
+            return
+
+        self.clear_content()
+
+        EmployeesFrame(
+            self.content_container,
+            self.user,
+        )
+
+    def show_users(self):
+
+        if self.user["role"] != "Admin":
+
+            self.show_access_denied()
+
+            return
+
+        self.clear_content()
+
+        UsersFrame(
+            self.content_container,
+            self.user,
+        )
+
+    def show_access_denied(self):
+
+        self.clear_content()
+
+        frame = ctk.CTkFrame(
+            self.content_container,
+            fg_color="transparent",
+        )
+
+        frame.pack(
+            fill="both",
+            expand=True,
+        )
+
+        label = ctk.CTkLabel(
+            frame,
+            text="Access Denied",
+            font=ctk.CTkFont(
+                size=30,
+                weight="bold",
+            ),
+            text_color="#DC2626",
+        )
+
+        label.place(
+            relx=0.5,
+            rely=0.45,
+            anchor="center",
+        )
+
+        info = ctk.CTkLabel(
+            frame,
+            text=(
+                "Your user role does not have "
+                "permission to access this feature."
+            ),
+            text_color="#64748B",
+            font=ctk.CTkFont(size=15),
+        )
+
+        info.place(
+            relx=0.5,
+            rely=0.52,
+            anchor="center",
+        )
+
+    def feature_not_available(self):
+
+        self.clear_content()
+
+        frame = ctk.CTkFrame(
+            self.content_container,
+            fg_color="transparent",
+        )
+
+        frame.pack(
+            fill="both",
+            expand=True,
+        )
+
+        label = ctk.CTkLabel(
+            frame,
+            text="Feature Coming in Next Stage",
+            font=ctk.CTkFont(
+                size=25,
+                weight="bold",
+            ),
+            text_color="#111827",
+        )
+
+        label.place(
+            relx=0.5,
+            rely=0.47,
+            anchor="center",
+        )
+
+    # -------------------------------------------------
+    # DASHBOARD
+    # -------------------------------------------------
 
     def show_dashboard(self):
 
@@ -228,6 +380,24 @@ class DashboardFrame(ctk.CTkFrame):
 
         subtitle.pack(
             anchor="w",
+            pady=(0, 5),
+        )
+
+        role_label = ctk.CTkLabel(
+            main,
+            text=(
+                f"Current Access Level: "
+                f"{self.user['role']}"
+            ),
+            font=ctk.CTkFont(
+                size=13,
+                weight="bold",
+            ),
+            text_color="#2563EB",
+        )
+
+        role_label.pack(
+            anchor="w",
             pady=(0, 25),
         )
 
@@ -270,9 +440,9 @@ class DashboardFrame(ctk.CTkFrame):
             cards_frame,
             0,
             2,
-            "Recorded Errors",
-            str(stats["errors"]),
-            "Errors captured by system",
+            "System Users",
+            str(stats["users"]),
+            "Registered user accounts",
         )
 
         reliability_title = ctk.CTkLabel(
@@ -315,16 +485,16 @@ class DashboardFrame(ctk.CTkFrame):
                 "Active",
             ),
             (
+                "Role Based Access",
+                "Active",
+            ),
+            (
                 "Automatic Backup",
-                "Next Stage",
+                "Pending",
             ),
             (
                 "Error Recovery",
-                "In Development",
-            ),
-            (
-                "Role Based Access",
-                "Basic Role System Active",
+                "Basic Recovery Active",
             ),
         ]
 
@@ -358,22 +528,15 @@ class DashboardFrame(ctk.CTkFrame):
             value_label = ctk.CTkLabel(
                 row,
                 text=value,
-                font=ctk.CTkFont(size=14),
+                font=ctk.CTkFont(
+                    size=14
+                ),
                 text_color="#2563EB",
             )
 
             value_label.pack(
                 side="right",
             )
-
-    def show_employees(self):
-
-        self.clear_content()
-
-        EmployeesFrame(
-            self.content_container,
-            self.user,
-        )
 
     def create_card(
         self,
@@ -434,7 +597,9 @@ class DashboardFrame(ctk.CTkFrame):
         description_label = ctk.CTkLabel(
             card,
             text=description,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(
+                size=12
+            ),
             text_color="#6B7280",
         )
 
@@ -471,10 +636,18 @@ class DashboardFrame(ctk.CTkFrame):
                 """
             ).fetchone()[0]
 
+            users = connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM users
+                """
+            ).fetchone()[0]
+
             return {
                 "employees": employees,
                 "audit_logs": audit_logs,
                 "errors": errors,
+                "users": users,
             }
 
         except Exception:
@@ -483,6 +656,7 @@ class DashboardFrame(ctk.CTkFrame):
                 "employees": 0,
                 "audit_logs": 0,
                 "errors": 0,
+                "users": 0,
             }
 
         finally:
