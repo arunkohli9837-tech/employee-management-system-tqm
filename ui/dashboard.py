@@ -1,22 +1,49 @@
 import customtkinter as ctk
 
 from database.database import get_connection
+from ui.employees import EmployeesFrame
 
 
 class DashboardFrame(ctk.CTkFrame):
 
-    def __init__(self, master, user, logout_callback):
-        super().__init__(master, fg_color="#F4F6F8")
+    def __init__(
+        self,
+        master,
+        user,
+        logout_callback,
+    ):
+
+        super().__init__(
+            master,
+            fg_color="#F4F6F8",
+        )
 
         self.user = user
         self.logout_callback = logout_callback
 
-        self.pack(fill="both", expand=True)
+        self.pack(
+            fill="both",
+            expand=True,
+        )
 
         self.create_sidebar()
-        self.create_main_content()
+
+        self.content_container = ctk.CTkFrame(
+            self,
+            fg_color="#F4F6F8",
+            corner_radius=0,
+        )
+
+        self.content_container.pack(
+            side="left",
+            fill="both",
+            expand=True,
+        )
+
+        self.show_dashboard()
 
     def create_sidebar(self):
+
         sidebar = ctk.CTkFrame(
             self,
             width=230,
@@ -33,7 +60,10 @@ class DashboardFrame(ctk.CTkFrame):
 
         title = ctk.CTkLabel(
             sidebar,
-            text="Employee\nManagement System",
+            text=(
+                "Employee\n"
+                "Management System"
+            ),
             font=ctk.CTkFont(
                 size=22,
                 weight="bold",
@@ -46,16 +76,50 @@ class DashboardFrame(ctk.CTkFrame):
             padx=20,
         )
 
-        buttons = [
-            "Dashboard",
-            "Employees",
+        dashboard_button = ctk.CTkButton(
+            sidebar,
+            text="Dashboard",
+            height=42,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color="#1E3A8A",
+            anchor="w",
+            font=ctk.CTkFont(size=14),
+            command=self.show_dashboard,
+        )
+
+        dashboard_button.pack(
+            fill="x",
+            padx=15,
+            pady=4,
+        )
+
+        employees_button = ctk.CTkButton(
+            sidebar,
+            text="Employees",
+            height=42,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color="#1E3A8A",
+            anchor="w",
+            font=ctk.CTkFont(size=14),
+            command=self.show_employees,
+        )
+
+        employees_button.pack(
+            fill="x",
+            padx=15,
+            pady=4,
+        )
+
+        future_buttons = [
             "User Roles",
             "Audit Logs",
             "Backups",
             "Reliability",
         ]
 
-        for button_name in buttons:
+        for button_name in future_buttons:
 
             button = ctk.CTkButton(
                 sidebar,
@@ -113,14 +177,21 @@ class DashboardFrame(ctk.CTkFrame):
             pady=(0, 25),
         )
 
-    def create_main_content(self):
+    def clear_content(self):
+
+        for widget in self.content_container.winfo_children():
+            widget.destroy()
+
+    def show_dashboard(self):
+
+        self.clear_content()
+
         main = ctk.CTkScrollableFrame(
-            self,
+            self.content_container,
             fg_color="#F4F6F8",
         )
 
         main.pack(
-            side="left",
             fill="both",
             expand=True,
             padx=25,
@@ -129,7 +200,10 @@ class DashboardFrame(ctk.CTkFrame):
 
         welcome = ctk.CTkLabel(
             main,
-            text=f"Welcome, {self.user['full_name']}",
+            text=(
+                f"Welcome, "
+                f"{self.user['full_name']}"
+            ),
             font=ctk.CTkFont(
                 size=27,
                 weight="bold",
@@ -234,7 +308,7 @@ class DashboardFrame(ctk.CTkFrame):
             ),
             (
                 "Input Validation",
-                "Planned",
+                "Active",
             ),
             (
                 "Audit Logging",
@@ -291,6 +365,15 @@ class DashboardFrame(ctk.CTkFrame):
             value_label.pack(
                 side="right",
             )
+
+    def show_employees(self):
+
+        self.clear_content()
+
+        EmployeesFrame(
+            self.content_container,
+            self.user,
+        )
 
     def create_card(
         self,
@@ -366,16 +449,26 @@ class DashboardFrame(ctk.CTkFrame):
         connection = get_connection()
 
         try:
+
             employees = connection.execute(
-                "SELECT COUNT(*) FROM employees"
+                """
+                SELECT COUNT(*)
+                FROM employees
+                """
             ).fetchone()[0]
 
             audit_logs = connection.execute(
-                "SELECT COUNT(*) FROM audit_logs"
+                """
+                SELECT COUNT(*)
+                FROM audit_logs
+                """
             ).fetchone()[0]
 
             errors = connection.execute(
-                "SELECT COUNT(*) FROM error_logs"
+                """
+                SELECT COUNT(*)
+                FROM error_logs
+                """
             ).fetchone()[0]
 
             return {
@@ -385,6 +478,7 @@ class DashboardFrame(ctk.CTkFrame):
             }
 
         except Exception:
+
             return {
                 "employees": 0,
                 "audit_logs": 0,
