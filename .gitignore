@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+
+database/employee_management.db
+database/employee_management.db-shm
+database/employee_management.db-wal
+
+backups/*.db
+backups/*.sqlite
+logs/*.log
