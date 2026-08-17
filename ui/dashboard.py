@@ -5,6 +5,7 @@ from database.database import get_connection
 from ui.employees import EmployeesFrame
 from ui.users import UsersFrame
 from ui.audit_logs import AuditLogsFrame
+from ui.backups import BackupsFrame
 
 
 class DashboardFrame(ctk.CTkFrame):
@@ -119,7 +120,7 @@ class DashboardFrame(ctk.CTkFrame):
             self.create_sidebar_button(
                 sidebar,
                 "Backups",
-                self.feature_not_available,
+                self.show_backups,
             )
 
             self.create_sidebar_button(
@@ -266,6 +267,20 @@ class DashboardFrame(ctk.CTkFrame):
         self.clear_content()
 
         AuditLogsFrame(
+            self.content_container,
+            self.user,
+        )
+
+    def show_backups(self):
+
+        if self.user["role"] != "Admin":
+
+            self.show_access_denied()
+            return
+
+        self.clear_content()
+
+        BackupsFrame(
             self.content_container,
             self.user,
         )

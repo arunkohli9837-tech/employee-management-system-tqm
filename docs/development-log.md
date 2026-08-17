@@ -176,3 +176,51 @@ This supports root-cause analysis and continuous quality improvement.
 ### Status
 
 Completed.
+## Stage 5 - Automatic Backup and Recovery
+
+### Objective
+
+Protect employee management data against accidental data loss and
+provide a controlled database recovery mechanism.
+
+### Implemented
+
+- Automatic database backup on application startup
+- Manual database backup
+- Backup history
+- Backup file listing
+- SQLite integrity validation
+- Database restore
+- Safety backup before restore
+- Restore confirmation
+- Backup success/failure tracking
+- Backup audit logging
+- Backup statistics
+
+### Reliability Improvements
+
+The system now creates an automatic database backup whenever the
+application starts.
+
+Administrators can manually create additional backups before important
+operations.
+
+Before restoring an older backup, the current database is copied into a
+safety backup so that the restore process itself does not unnecessarily
+increase the risk of data loss.
+
+SQLite integrity checking prevents invalid or corrupted database files
+from being restored.
+
+### TQM Relevance
+
+This feature directly addresses the Improve Reliability requirement by
+reducing the impact of database failure, accidental data modification,
+and corrupted backup files.
+
+The backup history and audit records also provide traceability for
+recovery operations.
+
+### Status
+
+Completed.

@@ -10,6 +10,7 @@ from services.auth_service import create_default_admin
 
 from ui.login import LoginFrame
 from ui.dashboard import DashboardFrame
+from services.backup_service import create_automatic_backup
 
 
 class EmployeeManagementApp(ctk.CTk):
@@ -38,6 +39,7 @@ class EmployeeManagementApp(ctk.CTk):
         try:
             initialize_database()
             create_default_admin()
+            create_automatic_backup()
 
         except Exception as error:
 

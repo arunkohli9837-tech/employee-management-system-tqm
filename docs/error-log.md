@@ -71,3 +71,34 @@ It directly supports Q01 - Improve Reliability.
 
 Database operations can recover from short temporary lock conditions
 instead of immediately terminating with an OperationalError.
+## Error 2 - Invalid Backup File
+
+### Problem
+
+An invalid SQLite file was selected for database restoration.
+
+### Expected Behaviour
+
+The application should reject the file instead of replacing the
+current database.
+
+### Cause
+
+The selected file was not a valid SQLite database.
+
+### Solution
+
+SQLite PRAGMA integrity_check was added before restoration.
+
+The system now validates the backup and blocks restoration when the
+integrity check fails.
+
+### TQM Relevance
+
+This is an Error Recovery and Input Validation improvement. It prevents
+an invalid backup from corrupting the active application database.
+
+### Result
+
+Invalid backup files are rejected safely without replacing the current
+database.
