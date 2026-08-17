@@ -1,7 +1,10 @@
 # Development Error and Problem Log
 
 This document records errors, development problems, their causes and
-the solutions used during the Employee Management System project.
+the solutions implemented during the Employee Management System project.
+
+The purpose of this log is to maintain development traceability and
+provide evidence of corrective actions taken under Q01 - Improve Reliability.
 
 ---
 
@@ -23,24 +26,29 @@ Root cause of the problem.
 
 How the problem was solved.
 
+### TQM Relevance
+
+How the corrective action contributes to reliability and quality.
+
 ### Result
 
 Final result after applying the solution.
 
 ---
-## Error 1 - SQLite Database Locked
 
-### Error / Problem
+# Error 1 - SQLite Database Locked
+
+## Error / Problem
 
 The application displayed the following error while running:
 
 `sqlite3.OperationalError: database is locked`
 
-### Stage
+## Stage
 
 Stage 2 - Employee Management and Input Validation
 
-### Cause
+## Cause
 
 SQLite can temporarily lock the database when another database
 connection or application process is performing a write operation.
@@ -48,255 +56,355 @@ connection or application process is performing a write operation.
 The application originally did not provide sufficient waiting time
 for a locked database to become available.
 
-### Solution
+## Solution
 
 The SQLite connection configuration was improved by adding:
 
 - Connection timeout
 - SQLite busy timeout
-- Transaction rollback on failed database operations
 - WAL journal mode
+- Transaction rollback support for database initialization
+- Safe exception handling around database operations
 
 The application now waits for a temporarily locked database instead
-of failing immediately.
+of immediately failing.
 
-### TQM Relevance
+## TQM Relevance
 
-This improvement increases fault tolerance and reduces failures caused
-by temporary database locking.
+This improves fault tolerance and reduces failures caused by
+temporary database locking.
 
 It directly supports Q01 - Improve Reliability.
 
-### Result
+## Result
 
-Database operations can recover from short temporary lock conditions
-instead of immediately terminating with an OperationalError.
-## Error 2 - Invalid Backup File
+The application can tolerate short temporary database lock
+conditions more effectively instead of immediately terminating
+with a database lock error.
 
-### Problem
-
-An invalid SQLite file was selected for database restoration.
-
-### Expected Behaviour
-
-The application should reject the file instead of replacing the
-current database.
-
-### Cause
-
-The selected file was not a valid SQLite database.
-
-### Solution
-
-SQLite PRAGMA integrity_check was added before restoration.
-
-The system now validates the backup and blocks restoration when the
-integrity check fails.
-
-### TQM Relevance
-
-This is an Error Recovery and Input Validation improvement. It prevents
-an invalid backup from corrupting the active application database.
-
-### Result
-
-Invalid backup files are rejected safely without replacing the current
-database.
 ---
 
-## Error 3 - Invalid Employee Input
+# Error 2 - Invalid Backup File
 
-### Problem
+## Error / Problem
+
+An invalid SQLite database file could be selected during the
+database restoration process.
+
+## Stage
+
+Stage 5 - Automatic Backup and Recovery
+
+## Cause
+
+A backup file may be damaged, incomplete, or may not actually be
+a valid SQLite database.
+
+Restoring such a file could potentially damage the active database.
+
+## Solution
+
+SQLite database integrity validation was implemented before
+restoration.
+
+The restoration process checks the selected backup before replacing
+the active database.
+
+The system also creates a safety backup of the current database
+before performing a restore operation.
+
+## TQM Relevance
+
+This is an Error Recovery and Input Validation improvement.
+
+It reduces the risk of data loss caused by invalid or corrupted
+backup files.
+
+## Result
+
+Invalid backup files are rejected safely and the active database
+is protected from an unsafe restoration.
+
+---
+
+# Error 3 - Invalid Employee Input
+
+## Error / Problem
 
 Invalid employee information could be entered through the
 Employee Management form.
 
-Examples included:
+Examples include:
 
 - Empty employee code
-- Invalid employee code characters
-- Invalid employee name
+- Employee code that is too short
+- Empty employee name
+- Employee name that is too short
 - Invalid email address
 - Invalid phone number
 - Negative salary
-- Invalid salary values
-- Incorrect joining date
+- Non-numeric salary
+- Empty department
+- Empty designation
+- Empty salary
+- Missing joining date
+- Incorrect joining date format
 
-### Stage
+## Stage
 
 Stage 6 - Input Validation and Error Recovery
 
-### Cause
+## Cause
 
-The initial validation rules checked only basic requirements.
-Several invalid or extreme values could still reach the
-database layer.
+The initial Employee Management implementation did not provide
+sufficient validation for all important employee fields.
 
-### Solution
+Invalid values could potentially reach the database layer.
 
-Stronger validation rules were implemented in the employee
-service layer.
+## Solution
+
+Validation was implemented in the employee service layer.
 
 The system now validates:
 
-- Required fields
-- Employee code format
-- Employee name format
+- Employee code presence
+- Minimum employee code length
+- Employee name presence
+- Minimum employee name length
 - Email format
-- Phone number format
-- Salary range and numeric validity
+- Phone number format when supplied
+- Department presence
+- Designation presence
+- Salary presence
+- Numeric salary value
+- Negative salary values
+- Joining date presence
 - Joining date format
-- Future joining dates
-- Maximum field lengths
 
-Invalid data is rejected before database insertion or update.
+Invalid information is rejected before the database operation
+is performed.
 
-### TQM Relevance
+## TQM Relevance
 
-This improves reliability by preventing invalid data from
-entering the system.
-
-It supports:
+This supports:
 
 - Input Validation
 - Defect Prevention
 - Data Quality
 - Reliability Improvement
 
-### Result
+Preventing invalid data at the application layer reduces the
+possibility of inconsistent employee records.
 
-Invalid employee data is rejected with a clear message and
-does not modify the database.
+## Result
+
+Invalid employee data is rejected with a clear validation message
+and is not inserted or updated in the database.
 
 ---
 
-## Error 4 - Database Operation Failure
+# Error 4 - Duplicate Employee Data
 
-### Problem
+## Error / Problem
 
-A database operation could fail because of an SQLite error,
-unexpected application exception, or database constraint.
+An employee could not be added if the employee code or email
+already existed in the database.
 
-### Stage
+Without controlled handling, a database uniqueness error could
+result in an unclear application failure.
+
+## Stage
 
 Stage 6 - Input Validation and Error Recovery
 
-### Cause
+## Cause
 
-Database operations can fail because of:
+The database uses unique constraints for:
 
-- Database locking
-- Constraint violations
-- Invalid database operations
-- Unexpected runtime errors
+- Employee code
+- Employee email
 
-### Solution
+Attempting to insert duplicate values produces an SQLite
+integrity error.
 
-Database operations were improved using:
+## Solution
 
-- Explicit transaction rollback
-- SQLite-specific error handling
+The employee service catches `sqlite3.IntegrityError`.
+
+The system identifies duplicate employee code and duplicate
+email conditions and returns a user-friendly message.
+
+Examples:
+
+`Employee code already exists.`
+
+`Employee email already exists.`
+
+The failed operation is also recorded in the audit log.
+
+## TQM Relevance
+
+This improves data integrity and provides controlled error handling
+for database constraint violations.
+
+## Result
+
+Duplicate employee records are rejected without creating a
+duplicate database record.
+
+---
+
+# Error 5 - Database Operation Failure
+
+## Error / Problem
+
+Database operations may fail because of database errors,
+constraint violations, locking conditions, or unexpected
+runtime exceptions.
+
+## Stage
+
+Stage 6 - Input Validation and Error Recovery
+
+## Cause
+
+Database operations depend on the availability and integrity
+of the SQLite database.
+
+Unexpected exceptions can occur during create, read, update,
+or deactivate operations.
+
+## Solution
+
+Database operations were protected using exception handling.
+
+The system now uses:
+
+- SQLite-specific exception handling
 - General exception handling
-- Error logging
-- Audit logging
+- Database error logging
+- Audit logging for important employee operations
 - User-friendly error messages
+- Safe connection closing using `finally`
 
-Failed create, update and deactivate operations now
-rollback the transaction before returning an error.
+Unexpected errors are recorded in the `error_logs` table.
 
-### TQM Relevance
+Failed employee operations are also recorded in the audit log
+where applicable.
 
-This implements Error Recovery and Fault Tolerance.
+## TQM Relevance
 
-The system prevents partially completed database operations
-from leaving inconsistent data.
+This supports:
 
-### Result
+- Error Recovery
+- Fault Tolerance
+- Traceability
+- Root-Cause Analysis
 
-When a database operation fails, the application:
+Technical errors are retained for investigation instead of
+being silently ignored.
 
-1. Rolls back the failed transaction.
-2. Records the technical error.
-3. Records the failed user action.
-4. Shows a safe message to the user.
-5. Keeps previously stored data unchanged.
+## Result
+
+Unexpected database/application failures are handled without
+unnecessarily terminating the application, and relevant errors
+can be investigated using the error and audit logs.
 
 ---
 
-## Error 5 - Invalid Employee Selection
+# Error 6 - Invalid or Missing Employee Selection
 
-### Problem
+## Error / Problem
 
-An invalid or unavailable employee ID could be supplied
-during employee selection, update or deactivation.
+An employee operation such as update or deactivation requires
+a valid employee record to be selected.
 
-### Stage
+An employee ID may become invalid if the record does not exist
+or if the selected database record is unavailable.
+
+## Stage
 
 Stage 6 - Input Validation and Error Recovery
 
-### Cause
+## Cause
 
-Employee IDs obtained from the UI should not be assumed to
-always be valid.
+The UI selection cannot be assumed to always represent a valid
+database record.
 
-### Solution
+## Solution
 
-Employee IDs are now checked before database operations.
+The application now checks the selected employee ID and attempts
+to retrieve the corresponding employee record before performing
+the operation.
 
-The system verifies:
+The service layer also checks whether the employee exists.
 
-- ID can be converted to an integer
-- ID is greater than zero
-- Employee record exists
-- Employee is not already inactive
+For deactivation, the system additionally checks whether the
+employee is already inactive.
 
-Invalid selections are rejected safely.
+## TQM Relevance
 
-### TQM Relevance
-
-This prevents invalid operations and improves application
+This prevents invalid employee operations and improves application
 fault tolerance.
 
-### Result
+## Result
 
-Invalid employee selections no longer cause an application
-crash or unintended database operation.
+Invalid or unavailable employee selections are rejected safely
+with an appropriate message instead of causing an application crash.
 
 ---
 
-## Stage 6 Testing Record
+# Stage 6 Testing Record
 
-The following tests were performed after implementing the
-validation and recovery improvements.
+The following test cases were used to verify the implemented
+input validation and employee management reliability controls.
 
 | Test Case | Expected Result | Status |
 |---|---|---|
-| Empty employee code | Reject input | Passed |
-| One-character employee code | Reject input | Passed |
-| Invalid employee code characters | Reject input | Passed |
-| Empty employee name | Reject input | Passed |
-| Name containing invalid numbers | Reject input | Passed |
-| Invalid email | Reject input | Passed |
-| Invalid phone number | Reject input | Passed |
-| Negative salary | Reject input | Passed |
-| Text entered as salary | Reject input | Passed |
-| Future joining date | Reject input | Passed |
-| Duplicate employee code | Reject and preserve database | Passed |
-| Duplicate employee email | Reject and preserve database | Passed |
-| Invalid employee ID | Reject operation safely | Passed |
-| Employee not found | Show error without crash | Passed |
-| Already inactive employee | Reject duplicate deactivation | Passed |
-| Database failure | Rollback and log error | Passed |
-| Valid employee creation | Save successfully | Passed |
-| Valid employee update | Update successfully | Passed |
-| Valid employee deactivation | Deactivate successfully | Passed |
+| Empty employee code | Reject input | Verified |
+| One-character employee code | Reject input | Verified |
+| Empty employee name | Reject input | Verified |
+| Short employee name | Reject input | Verified |
+| Invalid email | Reject input | Verified |
+| Invalid phone number | Reject input | Verified |
+| Empty department | Reject input | Verified |
+| Empty designation | Reject input | Verified |
+| Empty salary | Reject input | Verified |
+| Text entered as salary | Reject input | Verified |
+| Negative salary | Reject input | Verified |
+| Missing joining date | Reject input | Verified |
+| Incorrect joining date format | Reject input | Verified |
+| Duplicate employee code | Reject operation | Verified |
+| Duplicate employee email | Reject operation | Verified |
+| Employee not found | Reject operation safely | Verified |
+| Already inactive employee | Reject duplicate deactivation | Verified |
+| Valid employee creation | Save successfully | Verified |
+| Valid employee update | Update successfully | Verified |
+| Valid employee deactivation | Deactivate successfully | Verified |
 
-### Stage 6 Result
+> Note: Testing status is based on the validation and employee
+> management tests performed during Stage 6. Additional stress,
+> recovery and performance measurements will be documented in
+> later TQM stages.
 
-Input validation and error recovery were successfully
-implemented.
+---
 
-The Employee Management System now prevents invalid data,
-handles database failures using transaction rollback, records
-errors and failed operations, and provides user-friendly
-feedback without unnecessarily terminating the application.
+# Stage 6 Result
+
+Input validation and employee-operation error handling were
+successfully implemented.
+
+The Employee Management System now:
+
+- Rejects invalid employee information.
+- Prevents duplicate employee codes and email addresses.
+- Handles database constraint errors.
+- Records important employee operations through audit logging.
+- Records unexpected application/database errors.
+- Safely handles invalid employee selections.
+- Uses employee deactivation instead of permanent deletion.
+- Provides user-friendly error messages.
+
+These improvements directly contribute to Q01 - Improve Reliability
+through input validation, data integrity, fault handling and
+traceability.
