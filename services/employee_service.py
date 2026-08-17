@@ -1,3 +1,6 @@
+# FILE LOCATION: services/employee_service.py
+
+import math
 import re
 import sqlite3
 from datetime import datetime
@@ -9,8 +12,18 @@ from database.database import (
 )
 
 
-EMAIL_PATTERN = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+EMAIL_PATTERN = (
+    r"^[A-Za-z0-9._%+-]+@"
+    r"[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+)
+
 PHONE_PATTERN = r"^[0-9+\-\s]{7,15}$"
+
+EMPLOYEE_CODE_PATTERN = r"^[A-Za-z0-9_-]+$"
+
+NAME_PATTERN = (
+    r"^[A-Za-z][A-Za-z .'-]*$"
+)
 
 
 def validate_employee_data(data):
@@ -22,74 +35,267 @@ def validate_employee_data(data):
         (False, error_message) if invalid
     """
 
-    employee_code = data.get("employee_code", "").strip()
-    full_name = data.get("full_name", "").strip()
-    email = data.get("email", "").strip()
-    phone = data.get("phone", "").strip()
-    department = data.get("department", "").strip()
-    designation = data.get("designation", "").strip()
-    salary = str(data.get("salary", "")).strip()
-    joining_date = data.get("joining_date", "").strip()
+    employee_code = str(
+        data.get("employee_code", "")
+    ).strip()
+
+    full_name = str(
+        data.get("full_name", "")
+    ).strip()
+
+    email = str(
+        data.get("email", "")
+    ).strip()
+
+    phone = str(
+        data.get("phone", "")
+    ).strip()
+
+    department = str(
+        data.get("department", "")
+    ).strip()
+
+    designation = str(
+        data.get("designation", "")
+    ).strip()
+
+    salary = str(
+        data.get("salary", "")
+    ).strip()
+
+    joining_date = str(
+        data.get("joining_date", "")
+    ).strip()
+
+    # ---------------------------------------------
+    # EMPLOYEE CODE
+    # ---------------------------------------------
 
     if not employee_code:
         return False, "Employee code is required."
 
     if len(employee_code) < 2:
-        return False, "Employee code must contain at least 2 characters."
+        return (
+            False,
+            "Employee code must contain at least 2 characters.",
+        )
+
+    if len(employee_code) > 30:
+        return (
+            False,
+            "Employee code cannot exceed 30 characters.",
+        )
+
+    if not re.fullmatch(
+        EMPLOYEE_CODE_PATTERN,
+        employee_code,
+    ):
+        return (
+            False,
+            (
+                "Employee code can contain only "
+                "letters, numbers, hyphens and underscores."
+            ),
+        )
+
+    # ---------------------------------------------
+    # FULL NAME
+    # ---------------------------------------------
 
     if not full_name:
         return False, "Employee name is required."
 
     if len(full_name) < 3:
-        return False, "Employee name must contain at least 3 characters."
+        return (
+            False,
+            "Employee name must contain at least 3 characters.",
+        )
+
+    if len(full_name) > 100:
+        return (
+            False,
+            "Employee name cannot exceed 100 characters.",
+        )
+
+    if not re.fullmatch(
+        NAME_PATTERN,
+        full_name,
+    ):
+        return (
+            False,
+            (
+                "Employee name can contain only "
+                "letters, spaces, apostrophes, dots "
+                "and hyphens."
+            ),
+        )
+
+    # ---------------------------------------------
+    # EMAIL
+    # ---------------------------------------------
 
     if not email:
         return False, "Email address is required."
 
-    if not re.match(EMAIL_PATTERN, email):
-        return False, "Please enter a valid email address."
+    if len(email) > 150:
+        return (
+            False,
+            "Email address cannot exceed 150 characters.",
+        )
 
-    if phone and not re.match(PHONE_PATTERN, phone):
-        return False, "Please enter a valid phone number."
+    if not re.fullmatch(
+        EMAIL_PATTERN,
+        email,
+    ):
+        return (
+            False,
+            "Please enter a valid email address.",
+        )
+
+    # ---------------------------------------------
+    # PHONE
+    # ---------------------------------------------
+
+    if phone:
+
+        if not re.fullmatch(
+            PHONE_PATTERN,
+            phone,
+        ):
+            return (
+                False,
+                "Please enter a valid phone number.",
+            )
+
+        digits_only = re.sub(
+            r"\D",
+            "",
+            phone,
+        )
+
+        if len(digits_only) < 7:
+            return (
+                False,
+                "Phone number must contain at least 7 digits.",
+            )
+
+        if len(digits_only) > 15:
+            return (
+                False,
+                "Phone number cannot contain more than 15 digits.",
+            )
+
+    # ---------------------------------------------
+    # DEPARTMENT
+    # ---------------------------------------------
 
     if not department:
         return False, "Department is required."
 
+    if len(department) > 100:
+        return (
+            False,
+            "Department cannot exceed 100 characters.",
+        )
+
+    # ---------------------------------------------
+    # DESIGNATION
+    # ---------------------------------------------
+
     if not designation:
         return False, "Designation is required."
+
+    if len(designation) > 100:
+        return (
+            False,
+            "Designation cannot exceed 100 characters.",
+        )
+
+    # ---------------------------------------------
+    # SALARY
+    # ---------------------------------------------
 
     if not salary:
         return False, "Salary is required."
 
     try:
+
         salary_value = float(salary)
 
-        if salary_value < 0:
-            return False, "Salary cannot be negative."
+        if not math.isfinite(
+            salary_value
+        ):
+            return (
+                False,
+                "Salary must be a finite number.",
+            )
 
-    except ValueError:
-        return False, "Salary must be a valid number."
+        if salary_value < 0:
+            return (
+                False,
+                "Salary cannot be negative.",
+            )
+
+        if salary_value > 1000000000:
+            return (
+                False,
+                "Salary value is too large.",
+            )
+
+    except (
+        ValueError,
+        TypeError,
+    ):
+        return (
+            False,
+            "Salary must be a valid number.",
+        )
+
+    # ---------------------------------------------
+    # JOINING DATE
+    # ---------------------------------------------
 
     if not joining_date:
         return False, "Joining date is required."
 
     try:
-        datetime.strptime(joining_date, "%Y-%m-%d")
+
+        parsed_date = datetime.strptime(
+            joining_date,
+            "%Y-%m-%d",
+        ).date()
 
     except ValueError:
-        return False, "Joining date must be in YYYY-MM-DD format."
+
+        return (
+            False,
+            "Joining date must be in YYYY-MM-DD format.",
+        )
+
+    if parsed_date > datetime.now().date():
+
+        return (
+            False,
+            "Joining date cannot be in the future.",
+        )
 
     return True, None
 
 
-def create_employee(data, current_user):
+def create_employee(
+    data,
+    current_user,
+):
     """
     Add a new employee to the database.
     """
 
-    valid, validation_error = validate_employee_data(data)
+    valid, validation_error = (
+        validate_employee_data(data)
+    )
 
     if not valid:
+
         record_audit_log(
             current_user["id"],
             current_user["username"],
@@ -105,9 +311,12 @@ def create_employee(data, current_user):
     connection = get_connection()
 
     try:
+
         cursor = connection.cursor()
 
-        now = datetime.now().isoformat(timespec="seconds")
+        now = datetime.now().isoformat(
+            timespec="seconds"
+        )
 
         cursor.execute(
             """
@@ -151,7 +360,10 @@ def create_employee(data, current_user):
             "CREATE_EMPLOYEE",
             "Employee",
             str(employee_id),
-            f"Created employee {data['employee_code'].strip()}.",
+            (
+                f"Created employee "
+                f"{data['employee_code'].strip()}."
+            ),
             "Success",
         )
 
@@ -159,16 +371,27 @@ def create_employee(data, current_user):
 
     except sqlite3.IntegrityError as error:
 
-        error_message = str(error)
+        connection.rollback()
+
+        error_message = str(error).lower()
 
         if "employee_code" in error_message:
-            message = "Employee code already exists."
+
+            message = (
+                "Employee code already exists."
+            )
 
         elif "email" in error_message:
-            message = "Employee email already exists."
+
+            message = (
+                "Employee email already exists."
+            )
 
         else:
-            message = "Duplicate or invalid employee data."
+
+            message = (
+                "Duplicate or invalid employee data."
+            )
 
         record_audit_log(
             current_user["id"],
@@ -182,7 +405,9 @@ def create_employee(data, current_user):
 
         return False, message
 
-    except Exception as error:
+    except sqlite3.Error as error:
+
+        connection.rollback()
 
         record_error(
             type(error).__name__,
@@ -200,13 +425,50 @@ def create_employee(data, current_user):
             "Failed",
         )
 
-        return False, "Unexpected error occurred while adding employee."
+        return (
+            False,
+            (
+                "Database error occurred while "
+                "adding employee. No changes were saved."
+            ),
+        )
+
+    except Exception as error:
+
+        connection.rollback()
+
+        record_error(
+            type(error).__name__,
+            str(error),
+            "employee_service.create_employee",
+        )
+
+        record_audit_log(
+            current_user["id"],
+            current_user["username"],
+            "CREATE_EMPLOYEE",
+            "Employee",
+            None,
+            str(error),
+            "Failed",
+        )
+
+        return (
+            False,
+            (
+                "Unexpected error occurred while "
+                "adding employee."
+            ),
+        )
 
     finally:
+
         connection.close()
 
 
-def get_all_employees(search_text=""):
+def get_all_employees(
+    search_text="",
+):
     """
     Get all employees.
 
@@ -218,9 +480,13 @@ def get_all_employees(search_text=""):
 
     try:
 
-        if search_text.strip():
+        search_text = str(
+            search_text
+        ).strip()
 
-            search = f"%{search_text.strip()}%"
+        if search_text:
+
+            search = f"%{search_text}%"
 
             rows = connection.execute(
                 """
@@ -252,7 +518,20 @@ def get_all_employees(search_text=""):
                 """
             ).fetchall()
 
-        return [dict(row) for row in rows]
+        return [
+            dict(row)
+            for row in rows
+        ]
+
+    except sqlite3.Error as error:
+
+        record_error(
+            type(error).__name__,
+            str(error),
+            "employee_service.get_all_employees",
+        )
+
+        return []
 
     except Exception as error:
 
@@ -265,10 +544,13 @@ def get_all_employees(search_text=""):
         return []
 
     finally:
+
         connection.close()
 
 
-def get_employee_by_id(employee_id):
+def get_employee_by_id(
+    employee_id,
+):
     """
     Get one employee by database ID.
     """
@@ -276,6 +558,22 @@ def get_employee_by_id(employee_id):
     connection = get_connection()
 
     try:
+
+        try:
+
+            employee_id = int(
+                employee_id
+            )
+
+        except (
+            ValueError,
+            TypeError,
+        ):
+
+            return None
+
+        if employee_id <= 0:
+            return None
 
         row = connection.execute(
             """
@@ -291,16 +589,43 @@ def get_employee_by_id(employee_id):
 
         return None
 
+    except sqlite3.Error as error:
+
+        record_error(
+            type(error).__name__,
+            str(error),
+            "employee_service.get_employee_by_id",
+        )
+
+        return None
+
+    except Exception as error:
+
+        record_error(
+            type(error).__name__,
+            str(error),
+            "employee_service.get_employee_by_id",
+        )
+
+        return None
+
     finally:
+
         connection.close()
 
 
-def update_employee(employee_id, data, current_user):
+def update_employee(
+    employee_id,
+    data,
+    current_user,
+):
     """
     Update existing employee.
     """
 
-    valid, validation_error = validate_employee_data(data)
+    valid, validation_error = (
+        validate_employee_data(data)
+    )
 
     if not valid:
 
@@ -330,7 +655,20 @@ def update_employee(employee_id, data, current_user):
         ).fetchone()
 
         if not existing_employee:
-            return False, "Employee not found."
+
+            message = "Employee not found."
+
+            record_audit_log(
+                current_user["id"],
+                current_user["username"],
+                "UPDATE_EMPLOYEE",
+                "Employee",
+                str(employee_id),
+                message,
+                "Failed",
+            )
+
+            return False, message
 
         connection.execute(
             """
@@ -356,7 +694,9 @@ def update_employee(employee_id, data, current_user):
                 data["designation"].strip(),
                 float(data["salary"]),
                 data["joining_date"].strip(),
-                datetime.now().isoformat(timespec="seconds"),
+                datetime.now().isoformat(
+                    timespec="seconds"
+                ),
                 employee_id,
             ),
         )
@@ -369,7 +709,10 @@ def update_employee(employee_id, data, current_user):
             "UPDATE_EMPLOYEE",
             "Employee",
             str(employee_id),
-            f"Updated employee {data['employee_code'].strip()}.",
+            (
+                f"Updated employee "
+                f"{data['employee_code'].strip()}."
+            ),
             "Success",
         )
 
@@ -377,20 +720,43 @@ def update_employee(employee_id, data, current_user):
 
     except sqlite3.IntegrityError as error:
 
-        error_message = str(error)
+        connection.rollback()
+
+        error_message = str(error).lower()
 
         if "employee_code" in error_message:
-            message = "Employee code already exists."
+
+            message = (
+                "Employee code already exists."
+            )
 
         elif "email" in error_message:
-            message = "Employee email already exists."
+
+            message = (
+                "Employee email already exists."
+            )
 
         else:
-            message = "Duplicate or invalid employee data."
+
+            message = (
+                "Duplicate or invalid employee data."
+            )
+
+        record_audit_log(
+            current_user["id"],
+            current_user["username"],
+            "UPDATE_EMPLOYEE",
+            "Employee",
+            str(employee_id),
+            message,
+            "Failed",
+        )
 
         return False, message
 
-    except Exception as error:
+    except sqlite3.Error as error:
+
+        connection.rollback()
 
         record_error(
             type(error).__name__,
@@ -398,13 +764,61 @@ def update_employee(employee_id, data, current_user):
             "employee_service.update_employee",
         )
 
-        return False, "Unexpected error occurred while updating employee."
+        record_audit_log(
+            current_user["id"],
+            current_user["username"],
+            "UPDATE_EMPLOYEE",
+            "Employee",
+            str(employee_id),
+            str(error),
+            "Failed",
+        )
+
+        return (
+            False,
+            (
+                "Database error occurred while "
+                "updating employee. No changes were saved."
+            ),
+        )
+
+    except Exception as error:
+
+        connection.rollback()
+
+        record_error(
+            type(error).__name__,
+            str(error),
+            "employee_service.update_employee",
+        )
+
+        record_audit_log(
+            current_user["id"],
+            current_user["username"],
+            "UPDATE_EMPLOYEE",
+            "Employee",
+            str(employee_id),
+            str(error),
+            "Failed",
+        )
+
+        return (
+            False,
+            (
+                "Unexpected error occurred while "
+                "updating employee."
+            ),
+        )
 
     finally:
+
         connection.close()
 
 
-def deactivate_employee(employee_id, current_user):
+def deactivate_employee(
+    employee_id,
+    current_user,
+):
     """
     Deactivate employee instead of permanently deleting data.
 
@@ -416,6 +830,51 @@ def deactivate_employee(employee_id, current_user):
 
     try:
 
+        try:
+
+            employee_id = int(
+                employee_id
+            )
+
+        except (
+            ValueError,
+            TypeError,
+        ):
+
+            message = (
+                "Invalid employee selection."
+            )
+
+            record_audit_log(
+                current_user["id"],
+                current_user["username"],
+                "DEACTIVATE_EMPLOYEE",
+                "Employee",
+                None,
+                message,
+                "Failed",
+            )
+
+            return False, message
+
+        if employee_id <= 0:
+
+            message = (
+                "Invalid employee selection."
+            )
+
+            record_audit_log(
+                current_user["id"],
+                current_user["username"],
+                "DEACTIVATE_EMPLOYEE",
+                "Employee",
+                str(employee_id),
+                message,
+                "Failed",
+            )
+
+            return False, message
+
         employee = connection.execute(
             """
             SELECT employee_code, status
@@ -426,10 +885,38 @@ def deactivate_employee(employee_id, current_user):
         ).fetchone()
 
         if not employee:
-            return False, "Employee not found."
+
+            message = "Employee not found."
+
+            record_audit_log(
+                current_user["id"],
+                current_user["username"],
+                "DEACTIVATE_EMPLOYEE",
+                "Employee",
+                str(employee_id),
+                message,
+                "Failed",
+            )
+
+            return False, message
 
         if employee["status"] == "Inactive":
-            return False, "Employee is already inactive."
+
+            message = (
+                "Employee is already inactive."
+            )
+
+            record_audit_log(
+                current_user["id"],
+                current_user["username"],
+                "DEACTIVATE_EMPLOYEE",
+                "Employee",
+                str(employee_id),
+                message,
+                "Failed",
+            )
+
+            return False, message
 
         connection.execute(
             """
@@ -440,7 +927,9 @@ def deactivate_employee(employee_id, current_user):
             WHERE id = ?
             """,
             (
-                datetime.now().isoformat(timespec="seconds"),
+                datetime.now().isoformat(
+                    timespec="seconds"
+                ),
                 employee_id,
             ),
         )
@@ -453,13 +942,21 @@ def deactivate_employee(employee_id, current_user):
             "DEACTIVATE_EMPLOYEE",
             "Employee",
             str(employee_id),
-            f"Deactivated employee {employee['employee_code']}.",
+            (
+                f"Deactivated employee "
+                f"{employee['employee_code']}."
+            ),
             "Success",
         )
 
-        return True, "Employee deactivated successfully."
+        return (
+            True,
+            "Employee deactivated successfully.",
+        )
 
-    except Exception as error:
+    except sqlite3.Error as error:
+
+        connection.rollback()
 
         record_error(
             type(error).__name__,
@@ -467,7 +964,52 @@ def deactivate_employee(employee_id, current_user):
             "employee_service.deactivate_employee",
         )
 
-        return False, "Unexpected error occurred while deactivating employee."
+        record_audit_log(
+            current_user["id"],
+            current_user["username"],
+            "DEACTIVATE_EMPLOYEE",
+            "Employee",
+            str(employee_id),
+            str(error),
+            "Failed",
+        )
+
+        return (
+            False,
+            (
+                "Database error occurred while "
+                "deactivating employee. No changes were saved."
+            ),
+        )
+
+    except Exception as error:
+
+        connection.rollback()
+
+        record_error(
+            type(error).__name__,
+            str(error),
+            "employee_service.deactivate_employee",
+        )
+
+        record_audit_log(
+            current_user["id"],
+            current_user["username"],
+            "DEACTIVATE_EMPLOYEE",
+            "Employee",
+            str(employee_id),
+            str(error),
+            "Failed",
+        )
+
+        return (
+            False,
+            (
+                "Unexpected error occurred while "
+                "deactivating employee."
+            ),
+        )
 
     finally:
+
         connection.close()

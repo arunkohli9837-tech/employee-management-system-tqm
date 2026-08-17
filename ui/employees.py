@@ -1,3 +1,5 @@
+# FILE LOCATION: ui/employees.py
+
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from datetime import date
@@ -13,7 +15,11 @@ from services.employee_service import (
 
 class EmployeesFrame(ctk.CTkFrame):
 
-    def __init__(self, master, current_user):
+    def __init__(
+        self,
+        master,
+        current_user,
+    ):
         super().__init__(
             master,
             fg_color="#F4F6F8",
@@ -112,59 +118,71 @@ class EmployeesFrame(ctk.CTkFrame):
 
         self.employee_code_entry = self.create_entry(
             form_frame,
-            "Employee Code"
+            "Employee Code",
         )
 
         self.full_name_entry = self.create_entry(
             form_frame,
-            "Full Name"
+            "Full Name",
         )
 
         self.email_entry = self.create_entry(
             form_frame,
-            "Email"
+            "Email",
         )
 
         self.phone_entry = self.create_entry(
             form_frame,
-            "Phone"
+            "Phone",
         )
 
         self.department_entry = self.create_entry(
             form_frame,
-            "Department"
+            "Department",
         )
 
         self.designation_entry = self.create_entry(
             form_frame,
-            "Designation"
+            "Designation",
         )
 
         self.salary_entry = self.create_entry(
             form_frame,
-            "Salary"
+            "Salary",
         )
 
         self.joining_date_entry = self.create_entry(
             form_frame,
-            "Joining Date (YYYY-MM-DD)"
+            "Joining Date (YYYY-MM-DD)",
         )
 
         self.joining_date_entry.insert(
             0,
-            date.today().isoformat()
+            date.today().isoformat(),
         )
+
+        # --------------------------------------------
+        # VALIDATION / MESSAGE AREA
+        # --------------------------------------------
 
         self.message_label = ctk.CTkLabel(
             form_frame,
             text="",
             wraplength=280,
-            font=ctk.CTkFont(size=12),
+            justify="left",
+            font=ctk.CTkFont(
+                size=12,
+            ),
         )
 
         self.message_label.pack(
+            padx=20,
             pady=(7, 4),
         )
+
+        # --------------------------------------------
+        # BUTTONS
+        # --------------------------------------------
 
         buttons = ctk.CTkFrame(
             form_frame,
@@ -233,6 +251,10 @@ class EmployeesFrame(ctk.CTkFrame):
             expand=True,
         )
 
+        # --------------------------------------------
+        # SEARCH
+        # --------------------------------------------
+
         search_frame = ctk.CTkFrame(
             list_frame,
             fg_color="transparent",
@@ -262,7 +284,7 @@ class EmployeesFrame(ctk.CTkFrame):
 
         self.search_entry.bind(
             "<KeyRelease>",
-            lambda event: self.load_employees()
+            lambda event: self.load_employees(),
         )
 
         refresh_button = ctk.CTkButton(
@@ -443,7 +465,11 @@ class EmployeesFrame(ctk.CTkFrame):
             self.employee_selected,
         )
 
-    def create_entry(self, parent, placeholder):
+    def create_entry(
+        self,
+        parent,
+        placeholder,
+    ):
 
         entry = ctk.CTkEntry(
             parent,
@@ -487,79 +513,198 @@ class EmployeesFrame(ctk.CTkFrame):
                 self.joining_date_entry.get(),
         }
 
+    def show_error(
+        self,
+        message,
+    ):
+
+        self.message_label.configure(
+            text=f"Error: {message}",
+            text_color="#DC2626",
+        )
+
+    def show_success(
+        self,
+        message,
+    ):
+
+        self.message_label.configure(
+            text=message,
+            text_color="#15803D",
+        )
+
     def save_employee(self):
 
         data = self.collect_form_data()
 
-        if self.selected_employee_id is None:
+        # --------------------------------------------
+        # BASIC UI VALIDATION
+        # --------------------------------------------
 
-            success, message = create_employee(
-                data,
-                self.current_user,
+        if not any(
+            str(value).strip()
+            for value in data.values()
+        ):
+
+            self.show_error(
+                "Please enter employee details before saving."
             )
 
-        else:
+            return
 
-            success, message = update_employee(
-                self.selected_employee_id,
-                data,
-                self.current_user,
+        # --------------------------------------------
+        # CREATE / UPDATE
+        # --------------------------------------------
+
+        try:
+
+            if self.selected_employee_id is None:
+
+                success, message = create_employee(
+                    data,
+                    self.current_user,
+                )
+
+            else:
+
+                success, message = update_employee(
+                    self.selected_employee_id,
+                    data,
+                    self.current_user,
+                )
+
+        except Exception as error:
+
+            self.show_error(
+                "The operation could not be completed."
             )
+
+            messagebox.showerror(
+                "System Error",
+                (
+                    "An unexpected error occurred.\n\n"
+                    "No changes were applied."
+                ),
+            )
+
+            return
+
+        # --------------------------------------------
+        # RESULT
+        # --------------------------------------------
 
         if success:
 
-            self.message_label.configure(
-                text=message,
-                text_color="#15803D",
+            self.show_success(
+                message,
             )
 
             self.clear_form(
-                keep_message=True
+                keep_message=True,
             )
 
             self.load_employees()
 
         else:
 
-            self.message_label.configure(
-                text=message,
-                text_color="#DC2626",
+            self.show_error(
+                message,
             )
 
     def load_employees(self):
 
         search_text = ""
 
-        if hasattr(self, "search_entry"):
-            search_text = self.search_entry.get()
+        if hasattr(
+            self,
+            "search_entry",
+        ):
 
-        employees = get_all_employees(
-            search_text
-        )
+            search_text = (
+                self.search_entry.get()
+            )
 
-        for item in self.employee_table.get_children():
-            self.employee_table.delete(item)
+        try:
+
+            employees = get_all_employees(
+                search_text,
+            )
+
+        except Exception:
+
+            self.show_error(
+                "Unable to load employee records."
+            )
+
+            employees = []
+
+        for item in (
+            self.employee_table.get_children()
+        ):
+
+            self.employee_table.delete(
+                item
+            )
 
         for employee in employees:
+
+            salary = employee.get(
+                "salary",
+                0,
+            )
+
+            try:
+
+                salary_text = f"{float(salary):.2f}"
+
+            except (
+                ValueError,
+                TypeError,
+            ):
+
+                salary_text = "0.00"
 
             self.employee_table.insert(
                 "",
                 "end",
                 values=(
-                    employee["id"],
-                    employee["employee_code"],
-                    employee["full_name"],
-                    employee["email"],
-                    employee["department"],
-                    employee["designation"],
-                    f"{employee['salary']:.2f}",
-                    employee["status"],
+                    employee.get("id", ""),
+                    employee.get(
+                        "employee_code",
+                        "",
+                    ),
+                    employee.get(
+                        "full_name",
+                        "",
+                    ),
+                    employee.get(
+                        "email",
+                        "",
+                    ),
+                    employee.get(
+                        "department",
+                        "",
+                    ),
+                    employee.get(
+                        "designation",
+                        "",
+                    ),
+                    salary_text,
+                    employee.get(
+                        "status",
+                        "",
+                    ),
                 ),
             )
 
-    def employee_selected(self, event=None):
+    def employee_selected(
+        self,
+        event=None,
+    ):
 
-        selected = self.employee_table.selection()
+        selected = (
+            self.employee_table.selection()
+        )
 
         if not selected:
             return
@@ -569,76 +714,142 @@ class EmployeesFrame(ctk.CTkFrame):
             "values",
         )
 
-        employee_id = int(values[0])
+        try:
 
-        employee = get_employee_by_id(
+            employee_id = int(
+                values[0]
+            )
+
+        except (
+            ValueError,
+            TypeError,
+            IndexError,
+        ):
+
+            self.show_error(
+                "Invalid employee record selected."
+            )
+
+            return
+
+        try:
+
+            employee = get_employee_by_id(
+                employee_id
+            )
+
+        except Exception:
+
+            self.show_error(
+                "Unable to load the selected employee."
+            )
+
+            return
+
+        if not employee:
+
+            self.show_error(
+                "Employee record could not be found."
+            )
+
+            return
+
+        self.selected_employee_id = (
             employee_id
         )
 
-        if not employee:
-            return
-
-        self.selected_employee_id = employee_id
-
         self.set_entry(
             self.employee_code_entry,
-            employee["employee_code"],
+            employee.get(
+                "employee_code",
+                "",
+            ),
         )
 
         self.set_entry(
             self.full_name_entry,
-            employee["full_name"],
+            employee.get(
+                "full_name",
+                "",
+            ),
         )
 
         self.set_entry(
             self.email_entry,
-            employee["email"],
+            employee.get(
+                "email",
+                "",
+            ),
         )
 
         self.set_entry(
             self.phone_entry,
-            employee["phone"] or "",
+            employee.get(
+                "phone",
+                "",
+            ) or "",
         )
 
         self.set_entry(
             self.department_entry,
-            employee["department"] or "",
+            employee.get(
+                "department",
+                "",
+            ) or "",
         )
 
         self.set_entry(
             self.designation_entry,
-            employee["designation"] or "",
+            employee.get(
+                "designation",
+                "",
+            ) or "",
         )
 
         self.set_entry(
             self.salary_entry,
-            str(employee["salary"]),
+            str(
+                employee.get(
+                    "salary",
+                    "",
+                )
+            ),
         )
 
         self.set_entry(
             self.joining_date_entry,
-            employee["joining_date"] or "",
+            employee.get(
+                "joining_date",
+                "",
+            ) or "",
         )
 
         self.save_button.configure(
-            text="Update Employee"
+            text="Update Employee",
         )
 
         self.message_label.configure(
             text=(
                 f"Editing employee "
-                f"{employee['employee_code']}"
+                f"{employee.get('employee_code', '')}"
             ),
             text_color="#2563EB",
         )
 
-    def set_entry(self, entry, value):
+    def set_entry(
+        self,
+        entry,
+        value,
+    ):
 
-        entry.delete(0, "end")
+        entry.delete(
+            0,
+            "end",
+        )
 
         entry.insert(
             0,
-            value
+            value,
         )
 
     def clear_form(
@@ -660,24 +871,30 @@ class EmployeesFrame(ctk.CTkFrame):
         ]
 
         for entry in entries:
-            entry.delete(0, "end")
+
+            entry.delete(
+                0,
+                "end",
+            )
 
         self.joining_date_entry.insert(
             0,
-            date.today().isoformat()
+            date.today().isoformat(),
         )
 
         self.save_button.configure(
-            text="Add Employee"
+            text="Add Employee",
         )
 
         if not keep_message:
 
             self.message_label.configure(
-                text=""
+                text="",
             )
 
-        for selection in self.employee_table.selection():
+        for selection in (
+            self.employee_table.selection()
+        ):
 
             self.employee_table.selection_remove(
                 selection
@@ -706,10 +923,24 @@ class EmployeesFrame(ctk.CTkFrame):
         if not confirm:
             return
 
-        success, message = deactivate_employee(
-            self.selected_employee_id,
-            self.current_user,
-        )
+        try:
+
+            success, message = deactivate_employee(
+                self.selected_employee_id,
+                self.current_user,
+            )
+
+        except Exception:
+
+            messagebox.showerror(
+                "System Error",
+                (
+                    "The employee could not be deactivated.\n\n"
+                    "No changes were applied."
+                ),
+            )
+
+            return
 
         if success:
 
