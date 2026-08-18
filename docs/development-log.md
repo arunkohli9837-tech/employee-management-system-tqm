@@ -348,4 +348,61 @@ Stage 6 directly supports Q01 - Improve Reliability through:
 
 ## Status
 
-Completed.
+---
+
+## Stage 7 - Reliability Testing and Quality Verification
+
+### Objective
+
+Verify the reliability improvements implemented during the previous
+development stages through systematic testing of the Employee
+Management System.
+
+### Testing Areas
+
+The following areas were selected for reliability verification:
+
+- Input validation
+- Duplicate data prevention
+- Employee record management
+- Employee deactivation
+- Role-based access control
+- Audit logging
+- Automatic backup
+- Manual backup
+- Database restoration
+- Invalid backup rejection
+- Error handling
+- Application stability
+
+### Testing Method
+
+Testing was performed using the working desktop application.
+
+Each test case was executed individually and the actual observed
+result was recorded in the reliability test plan.
+
+No artificial errors were introduced for documentation purposes.
+
+Errors were documented only when they were actually encountered
+during development or testing.
+
+### TQM Relevance
+
+Reliability testing provides evidence that the Q01 reliability
+improvements are functioning as intended.
+
+The testing process helps identify defects before final deployment
+and provides measurable evidence for:
+
+- Defect prevention
+- Data integrity
+- Fault tolerance
+- Error recovery
+- Traceability
+- Continuous improvement
+
+### Stage 7 Result
+
+The final result of Stage 7 will be recorded after all reliability
+test cases have been executed and their actual results documented.
